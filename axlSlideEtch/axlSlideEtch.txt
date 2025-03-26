@@ -1,0 +1,116 @@
+;axlSlideEtch(list(seg_1 seg_2) 20)
+
+defun(axlSlideEtch (clineseg_list move_length @optional (ext_mode nil))
+prog(()
+
+if(clineseg_list then
+move_list = nil
+
+foreach(a_seg clineseg_list
+;檢查長度
+	seg_1_length = axlDBGetLength(a_seg)
+;抓取中心座標
+	seg_1_center = etch_center_point(a_seg)
+	seg_1_center_x = xCoord(seg_1_center)
+	seg_1_center_y = yCoord(seg_1_center)
+;抓取角度	
+	angle = getAngle(a_seg) 
+	if(angle == 45 then
+		move_x1 = seg_1_center_x
+		move_y1 = seg_1_center_y+move_length 
+	else
+		move_x1 = seg_1_center_x+move_length 
+		move_y1 = seg_1_center_y	
+	)	
+	move_list = cons(list(seg_1_center_x seg_1_center_y move_x1 move_y1) move_list)
+)
+
+	
+foreach(a_move move_list
+center_x = nth(0 a_move)
+center_y = nth(1 a_move)
+move_x = nth(2 a_move)
+move_y = nth(3 a_move)
+
+	axlShell("slide")
+	axlShell("setwindow form.find")
+	axlShell("FORM find all_off")
+	axlShell("FORM find cline_segs YES ")
+	axlShell("setwindow pcb")
+	
+		if(ext_mode then
+		axlShell(sprintf(nil "pick grid ext %f %f" center_x center_y))
+		axlShell(sprintf(nil "pick grid ext %f %f" move_x move_y))	
+		else
+		axlShell(sprintf(nil "pick grid %f %f" center_x center_y))
+		axlShell(sprintf(nil "pick grid %f %f" move_x move_y))	
+		)
+	axlShell("done")
+)
+
+new_segs_dbid = nil
+
+ foreach(a_move move_list
+
+ move_x = nth(2 a_move)
+ move_y = nth(3 a_move)
+
+ axlSetFindFilter(?enabled list("noall" "clinesegs") ?onButtons list("noall" "clinesegs"))
+ axlAddSelectPoint(list(move_x move_y))
+ a_seg_dbid = car(axlGetSelSet())
+ axlClearSelSet()
+ new_segs_dbid = cons(a_seg_dbid new_segs_dbid)
+
+ )
+ 
+ return(reverse(new_segs_dbid))
+
+	else
+	return(nil)
+	)
+	);when clineseg_list
+);prog
+
+
+;cline_seg_1 = select_any("clinesegs")
+;getAngle(seg_1)
+defun(getAngle (seg)
+prog(()
+	if(seg then
+	  x1 = car(car(seg->startEnd))
+	  y1 = cadr(car(seg->startEnd))
+	  x2 = car(cadr(seg->startEnd))
+	  y2 = cadr(cadr(seg->startEnd))
+	  deltax = x2 - x1
+	  deltay = y2 - y1
+	  
+		  if(deltax != 0 && deltay != 0 then
+		  rad = atan(deltay/deltax)
+		  deg = rad * 180 / 3.14159265
+		  return(deg)
+		  else
+		  return(0)
+		  )
+
+	  else
+	  return(nil)
+	 )
+)
+)
+
+defun(etch_center_point (seg)
+prog(()
+	if(seg then
+	  x1 = car(car(seg->startEnd))
+	  y1 = cadr(car(seg->startEnd))
+	  x2 = car(cadr(seg->startEnd))
+	  y2 = cadr(cadr(seg->startEnd))
+	  
+	  x_n = (x1+x2)/2
+	  y_n = (y1+y2)/2
+	  return(list(x_n y_n))
+	else
+	 return(nil)
+	)
+)
+)
